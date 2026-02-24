@@ -1,0 +1,550 @@
+# Command
+
+codex exec -s read-only -o /home/runner/work/FlowSmith/FlowSmith/.agent/runs/masaakiayb-muselucidsample/20260224T111226Z-issue-5/planner_output.md - < /home/runner/work/FlowSmith/FlowSmith/.agent/runs/masaakiayb-muselucidsample/20260224T111226Z-issue-5/planner_prompt.md
+
+# Exit Code
+
+0
+
+# Stdout
+
+## 1. スコープ（対象/対象外）
+
+### 対象
+- `ISSUE-0001` の要件仕様を、後続実装（`ISSUE-0002`〜`ISSUE-0006`）がそのまま参照できる粒度へ具体化する。
+- 曖昧表現・重複記述を整理し、以下を明文化する。  
+  - 入力条件: 受注番号・顧客コード必須  
+  - 重複条件: 同一受注番号の保存禁止  
+  - 成功応答: 受付ID・処理時刻返却  
+  - タイムアウト: 10秒超で再実行導線表示
+- 要件ドキュメント（新規）と、必要最小限の Issue 定義更新（参照先・検証観点）まで実施する。
+
+### 対象外
+- 画面/API/DB の実装作業そのもの。
+- システム構成設計の詳細化（`ISSUE-0002` で実施）。
+- Slack連携や運用設計の深掘り（本Issueで要求される範囲を超えるもの）。
+
+## 2. 実装手順（完了条件付き）
+
+1. 現行要件の正規化
+- 作業: `.muselucid/plan/issues/ISSUE-0001.yaml` の重複文を整理し、課題・目標・制約を一意にする。
+- 完了条件: 同じ意味の文が重複せず、課題文が1つの記述として読める状態。
+
+2. 要件仕様書を新規作成
+- 作業: `.muselucid/plan/requirements/ISSUE-0001.md` を作成し、最低限以下の章を定義する。  
+  - 対象ユーザー  
+  - 現状課題  
+  - 目標状態  
+  - 業務フロー（受信→検証→登録→確認）  
+  - 機能要件（正常/異常）  
+  - 非機能要件（応答時間10秒閾値）  
+  - 受け入れ基準（テスト可能な形）
+- 完了条件: 後続実装担当が「追加ヒアリングなしで実装着手可能」な粒度で記述されている。
+
+3. 機能要件を実装可能なI/O仕様へ落とし込み
+- 作業: 各要件を「条件・挙動・出力」に分解して表形式で明記する。  
+  例: 必須欠落時のエラーコード/メッセージ、重複時の警告、成功時のレスポンス項目、タイムアウト時UI文言と再試行導線。
+- 完了条件: 4つの主要要件（必須、重複、成功、タイムアウト）すべてに入力条件と期待結果がある。
+
+4. Issueメタ情報との整合性を反映
+- 作業: `ISSUE-0001.yaml` の `acceptance_criteria` / `verify` を仕様書の内容と対応づけ、レビュー観点を具体化する。
+- 完了条件: YAMLと仕様書の間で矛盾がなく、レビュー時チェック項目が明示される。
+
+5. 最終レビュー（曖昧語の除去）
+- 作業: 「適宜」「必要に応じて」「可能なら」など実装解釈が分かれる語を削除/置換する。
+- 完了条件: 曖昧表現ゼロ、または未決事項を `未決事項` セクションで明示し期限付きで管理。
+
+## 3. リスクと対策
+
+- リスク: 要件の重複・矛盾が残り、後続Issueで解釈差が発生する。  
+- 対策: 仕様書を単一の正として定義し、`ISSUE-0001.yaml` は要約＋参照先リンクに寄せる。
+
+- リスク: タイムアウト要件（10秒）の扱いがAPI/画面で不一致になる。  
+- 対策: 要件に「判定主体（フロント or API gateway）」「表示文言」「再実行操作」を明記する。
+
+- リスク: 成功/失敗レスポンス項目が不明確でAPI実装が止まる。  
+- 対策: 受付ID、処理時刻、エラーコード、警告コードを固定フィールド名で記述する。
+
+- リスク: 非機能要件が不足し、DoD判定不能になる。  
+- 対策: 応答時間閾値・再試行導線・レビュー観点を受け入れ基準に含める。
+
+## 4. 検証計画（実行コマンドと期待結果）
+
+1. 仕様書ファイル存在確認
+```bash
+test -f .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: 終了コード `0`。
+
+2. 必須章の存在確認
+```bash
+rg -n "^## (対象ユーザー|現状課題|目標状態|業務フロー|機能要件|非機能要件|受け入れ基準|未決事項)" .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: 各章が1件以上ヒットする。
+
+3. 主要要件キーワードの網羅確認
+```bash
+rg -n "受注番号|顧客コード|重複|受付ID|処理時刻|10秒|タイムアウト|再実行" .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: 4要件に対応する記述がすべてヒットする。
+
+4. ISSUE-0001との整合確認
+```bash
+rg -n "acceptance_criteria|verify|depends_on|risk" .muselucid/plan/issues/ISSUE-0001.yaml
+```
+期待結果: 仕様書レビューに対応する検証観点が記載されている。
+
+5. 曖昧語チェック
+```bash
+rg -n "適宜|必要に応じて|可能なら|できれば|など" .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: ヒット `0` 件（または未決事項として明示管理）。
+
+
+# Stderr
+
+OpenAI Codex v0.104.0 (research preview)
+--------
+workdir: /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsample
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: auto
+session id: 019c8f59-be13-7282-b7fa-5be45aea3d64
+--------
+user
+あなたは Planner エージェントです。
+
+GitHub Issue を、別のエージェントが実行可能な実装計画に落とし込んでください。
+
+Issue メタデータ:
+- プロジェクト: 
+- 対象リポジトリ: MasaakiAYB/MuseLucidSample
+- 対象パス: /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsample
+- 番号: #5
+- タイトル: 概要ヒアリング結果を要件仕様へ落とし込む
+- URL: https://github.com/MasaakiAYB/MuseLucidSample/issues/5
+
+Issue 本文:
+Plan-ID: ISSUE-0001
+Title: 概要ヒアリング結果を要件仕様へ落とし込む
+
+### Goal / Summary
+営業アシスタント2名が抱える「営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後を処理する中で処理遅延と転記ミスが毎週発生している。
+営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後で処理遅延と転記ミスが毎週発生している。」を解消し、メール受信後すぐに自動登録され、担当者は確認だけで完了できる状態を達成するためのMVPを実装する。
+
+### Scope
+- 対象ユーザー: 営業アシスタント2名
+- 現状課題: 営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後を処理する中で処理遅延と転記ミスが毎週発生している。
+営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後で処理遅延と転記ミスが毎週発生している。
+- 目標状態: メール受信後すぐに自動登録され、担当者は確認だけで完了できる状態
+- 受注番号と顧客コードが未入力なら登録せずエラー表示する
+- 同一受注番号が既に存在する場合は重複警告を表示して保存しない
+- 登録成功時は受付IDと処理時刻を返却する
+- API応答が10秒を超えたらタイムアウトとして再実行導線を表示する
+
+### Non-goals
+- (none)
+
+### Acceptance Criteria (DoD)
+- 対象ユーザー・課題・目標が矛盾なく記述されている
+- 機能要件が実装可能な粒度で明文化されている
+
+### Verify
+- 要件レビューで曖昧な記述が残っていないことを確認する
+
+### Constraints
+- (none)
+
+### Risk
+medium
+
+### Depends On
+- (none)
+
+
+追加フィードバック（PRレビュー/コメント）:
+_追加フィードバックなし_
+
+出力要件:
+1. スコープ（対象/対象外）
+2. 実装手順（番号付き、各手順に完了条件を付与）
+3. リスクと対策
+4. 検証計画（実行コマンドと期待結果）
+
+出力は markdown のみ。
+
+mcp startup: no servers
+
+thinking
+**Inspecting repo for planning templates**
+codex
+Issue #5 の内容を実行可能な実装計画に分解します。まずリポジトリ内の構成と既存の要件関連ドキュメントを確認し、実行コマンド付きの検証計画まで落とし込みます。
+exec
+/bin/bash -lc 'ls -la' in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc 'rg --files' in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsample succeeded in 51ms:
+total 28
+drwxr-xr-x 6 runner runner 4096 Feb 24 11:12 .
+drwxr-xr-x 3 runner runner 4096 Feb 24 11:12 ..
+drwxr-xr-x 3 runner runner 4096 Feb 24 11:12 .flowsmith
+drwxr-xr-x 7 runner runner 4096 Feb 24 11:12 .git
+drwxr-xr-x 4 runner runner 4096 Feb 24 11:12 .github
+drwxr-xr-x 4 runner runner 4096 Feb 24 11:12 .muselucid
+-rw-r--r-- 1 runner runner    9 Feb 24 11:12 README.md
+ succeeded in 51ms:
+README.md
+
+thinking
+**Checking hidden and ignored files**
+codex
+要件の雛形や運用ルールが隠しディレクトリ配下にある可能性が高いので、`.flowsmith` と `.muselucid` を確認して計画の粒度を合わせます。
+exec
+/bin/bash -lc 'find . -maxdepth 4 -type f | sort' in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc 'find . -maxdepth 4 -type d | sort' in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsample succeeded in 51ms:
+./.git/FETCH_HEAD
+./.git/HEAD
+./.git/ORIG_HEAD
+./.git/config
+./.git/description
+./.git/hooks/applypatch-msg.sample
+./.git/hooks/commit-msg.sample
+./.git/hooks/fsmonitor-watchman.sample
+./.git/hooks/post-update.sample
+./.git/hooks/pre-applypatch.sample
+./.git/hooks/pre-commit.sample
+./.git/hooks/pre-merge-commit.sample
+./.git/hooks/pre-push.sample
+./.git/hooks/pre-rebase.sample
+./.git/hooks/pre-receive.sample
+./.git/hooks/prepare-commit-msg.sample
+./.git/hooks/push-to-checkout.sample
+./.git/hooks/sendemail-validate.sample
+./.git/hooks/update.sample
+./.git/index
+ succeeded in 51ms:
+.
+./.flowsmith
+./.flowsmith/ui-evidence
+./.git
+./.git/hooks
+./.git/info
+./.git/logs
+./.git/logs/refs
+./.git/logs/refs/heads
+./.git/logs/refs/remotes
+./.git/objects
+./.git/objects/info
+./.git/objects/pack
+./.git/refs
+./.git/refs/heads
+./.git/refs/heads/agent
+./.git/refs/remotes
+./.git/refs/remotes/origin
+./.git/refs/tags
+./.github
+
+thinking
+**Inspecting issue YAML files**
+codex
+関連する既存計画の書き方を合わせるため、`.muselucid/plan` 配下の YAML を読み、手順と検証の粒度を揃えます。
+exec
+/bin/bash -lc "sed -n '1,220p' .muselucid/plan/issues/ISSUE-0001.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc "sed -n '1,220p' .muselucid/plan/issues/ISSUE-0005.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc "sed -n '1,220p' .muselucid/plan/roadmap.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc "sed -n '1,220p' .muselucid/plan/vision.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsample succeeded in 50ms:
+id: ISSUE-0001
+title: 概要ヒアリング結果を要件仕様へ落とし込む
+summary: |-
+  営業アシスタント2名が抱える「営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後を処理する中で処理遅延と転記ミスが毎週発生している。
+  営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後で処理遅延と転記ミスが毎週発生している。」を解消し、メール受信後すぐに自動登録され、担当者は確認だけで完了できる状態を達成するためのMVPを実装する。
+scope:
+  - "対象ユーザー: 営業アシスタント2名"
+  - |-
+    現状課題: 営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後を処理する中で処理遅延と転記ミスが毎週発生している。
+    営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後で処理遅延と転記ミスが毎週発生している。
+  - "目標状態: メール受信後すぐに自動登録され、担当者は確認だけで完了できる状態"
+  - 受注番号と顧客コードが未入力なら登録せずエラー表示する
+  - 同一受注番号が既に存在する場合は重複警告を表示して保存しない
+  - 登録成功時は受付IDと処理時刻を返却する
+  - API応答が10秒を超えたらタイムアウトとして再実行導線を表示する
+non_goals: []
+acceptance_criteria:
+  - 対象ユーザー・課題・目標が矛盾なく記述されている
+  - 機能要件が実装可能な粒度で明文化されている
+verify:
+ succeeded in 51ms:
+milestones:
+  - id: M1
+    title: 概要整理と要件仕様化
+    exit_criteria:
+      - 課題・目標・詳細要件が定義されている
+  - id: M2
+    title: システム構成設計
+    exit_criteria:
+      - 構成要素と責務・入出力が定義されている
+  - id: M3
+    title: 受注登録自動化MVP
+    exit_criteria:
+      - 受注取込画面の実装 の実装が完了している
+      - 受注登録APIの実装 の実装が完了している
+      - 受注一覧画面の実装 の実装が完了している
+  - id: M4
+    title: 総合検証
+    exit_criteria:
+      - 当日処理完了率95%以上
+ succeeded in 51ms:
+id: ISSUE-0005
+title: "実装ステップ: 受注一覧画面の実装"
+summary: 詳細仕様と構成設計に基づき「受注一覧画面の実装」を実装する。
+scope:
+  - 受注一覧画面の実装
+  - 受注番号と顧客コードが未入力なら登録せずエラー表示する
+  - 同一受注番号が既に存在する場合は重複警告を表示して保存しない
+non_goals: []
+acceptance_criteria:
+  - 受注一覧画面の実装 が利用可能であること
+  - 当日処理完了率95%以上
+verify:
+  - 一覧画面でステータス別件数を確認できること
+risk: medium
+labels:
+  - agent-task
+  - agent-ready
+depends_on:
+  - ISSUE-0004
+ succeeded in 51ms:
+project_name: 営業アシスタント2名向け メール受信後すぐに自動登録され、担当者は確認だけで完了できる状態
+problem: |-
+  営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後を処理する中で処理遅延と転記ミスが毎週発生している。
+  営業アシスタント2名が受注メール内容を基幹システムへ手入力しており、平日は1日120件前後で処理遅延と転記ミスが毎週発生している。
+goal: メール受信後すぐに自動登録され、担当者は確認だけで完了できる状態
+system_design:
+  - 受注取込画面でCSVまたはメール添付をアップロードする
+  - 登録APIで必須項目を検証して受注登録する
+  - 受注DBでステータスとエラー理由を保存する
+  - 登録失敗時にSlackへ通知する
+detailed_requirements:
+  - 受注番号と顧客コードが未入力なら登録せずエラー表示する
+  - 同一受注番号が既に存在する場合は重複警告を表示して保存しない
+  - 登録成功時は受付IDと処理時刻を返却する
+  - API応答が10秒を超えたらタイムアウトとして再実行導線を表示する
+non_goals: []
+success_metrics:
+  - 当日処理完了率95%以上
+constraints: []
+
+thinking
+**Scoping planning approach**
+codex
+既存のテンプレートとワークフローに合わせるため、Issue テンプレートを確認して「どの成果物を作るべきか」を特定します。
+exec
+/bin/bash -lc "sed -n '1,260p' .muselucid/templates/issue.md" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsample succeeded in 51ms:
+Plan-ID: {{id}}
+Title: {{title}}
+
+### Goal / Summary
+{{summary}}
+
+### Scope
+{{scope}}
+
+### Non-goals
+{{non_goals}}
+
+### Acceptance Criteria (DoD)
+{{acceptance_criteria}}
+
+### Verify
+{{verify}}
+
+### Constraints
+{{constraints}}
+
+thinking
+**Planning detailed implementation steps**
+codex
+依存関係がある後続 Issue で参照される粒度を揃えるため、`ISSUE-0002`〜`ISSUE-0004` も確認して計画の出口条件を一致させます。
+exec
+/bin/bash -lc "sed -n '1,260p' .muselucid/plan/issues/ISSUE-0002.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc "sed -n '1,260p' .muselucid/plan/issues/ISSUE-0003.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc "sed -n '1,260p' .muselucid/plan/issues/ISSUE-0004.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsampleexec
+/bin/bash -lc "sed -n '1,260p' .muselucid/plan/issues/ISSUE-0006.yaml" in /home/runner/work/FlowSmith/FlowSmith/.agent/workspaces/masaakiayb-muselucidsample succeeded in 51ms:
+id: ISSUE-0002
+title: システム構成を設計する
+summary: 画面/API/DB/連携の責務と入出力を定義し、実装方針を確定する。
+scope:
+  - 受注取込画面でCSVまたはメール添付をアップロードする
+  - 登録APIで必須項目を検証して受注登録する
+  - 受注DBでステータスとエラー理由を保存する
+  - 登録失敗時にSlackへ通知する
+non_goals: []
+acceptance_criteria:
+  - 主要コンポーネントと責務が定義されている
+  - コンポーネント間の入出力が定義されている
+verify:
+  - 構成レビューでデータ流れを説明できることを確認する
+risk: medium
+labels:
+  - agent-task
+  - agent-ready
+depends_on:
+  - ISSUE-0001
+ succeeded in 50ms:
+id: ISSUE-0003
+title: "実装ステップ: 受注取込画面の実装"
+summary: 詳細仕様と構成設計に基づき「受注取込画面の実装」を実装する。
+scope:
+  - 受注取込画面の実装
+  - 受注番号と顧客コードが未入力なら登録せずエラー表示する
+  - 同一受注番号が既に存在する場合は重複警告を表示して保存しない
+non_goals: []
+acceptance_criteria:
+  - 受注取込画面の実装 が利用可能であること
+  - 当日処理完了率95%以上
+verify:
+  - 一覧画面でステータス別件数を確認できること
+risk: medium
+labels:
+  - agent-task
+  - agent-ready
+depends_on:
+  - ISSUE-0002
+ succeeded in 50ms:
+id: ISSUE-0004
+title: "実装ステップ: 受注登録APIの実装"
+summary: 詳細仕様と構成設計に基づき「受注登録APIの実装」を実装する。
+scope:
+  - 受注登録APIの実装
+  - 受注番号と顧客コードが未入力なら登録せずエラー表示する
+  - 同一受注番号が既に存在する場合は重複警告を表示して保存しない
+non_goals: []
+acceptance_criteria:
+  - 受注登録APIの実装 が利用可能であること
+  - 当日処理完了率95%以上
+verify:
+  - 一覧画面でステータス別件数を確認できること
+risk: medium
+labels:
+  - agent-task
+  - agent-ready
+depends_on:
+  - ISSUE-0003
+ succeeded in 50ms:
+id: ISSUE-0006
+title: 総合検証とリリース判定
+summary: 段階実装した機能を統合し、成功指標と検証手順を満たすことを確認する。
+scope:
+  - 結合テストの実施
+  - 受け入れ観点の確認
+  - 当日処理完了率95%以上
+non_goals: []
+acceptance_criteria:
+  - 当日処理完了率95%以上
+verify:
+  - 一覧画面でステータス別件数を確認できること
+risk: medium
+labels:
+  - agent-task
+  - agent-ready
+depends_on:
+  - ISSUE-0005
+
+thinking
+**Creating detailed implementation plan**
+codex
+## 1. スコープ（対象/対象外）
+
+### 対象
+- `ISSUE-0001` の要件仕様を、後続実装（`ISSUE-0002`〜`ISSUE-0006`）がそのまま参照できる粒度へ具体化する。
+- 曖昧表現・重複記述を整理し、以下を明文化する。  
+  - 入力条件: 受注番号・顧客コード必須  
+  - 重複条件: 同一受注番号の保存禁止  
+  - 成功応答: 受付ID・処理時刻返却  
+  - タイムアウト: 10秒超で再実行導線表示
+- 要件ドキュメント（新規）と、必要最小限の Issue 定義更新（参照先・検証観点）まで実施する。
+
+### 対象外
+- 画面/API/DB の実装作業そのもの。
+- システム構成設計の詳細化（`ISSUE-0002` で実施）。
+- Slack連携や運用設計の深掘り（本Issueで要求される範囲を超えるもの）。
+
+## 2. 実装手順（完了条件付き）
+
+1. 現行要件の正規化
+- 作業: `.muselucid/plan/issues/ISSUE-0001.yaml` の重複文を整理し、課題・目標・制約を一意にする。
+- 完了条件: 同じ意味の文が重複せず、課題文が1つの記述として読める状態。
+
+2. 要件仕様書を新規作成
+- 作業: `.muselucid/plan/requirements/ISSUE-0001.md` を作成し、最低限以下の章を定義する。  
+  - 対象ユーザー  
+  - 現状課題  
+  - 目標状態  
+  - 業務フロー（受信→検証→登録→確認）  
+  - 機能要件（正常/異常）  
+  - 非機能要件（応答時間10秒閾値）  
+  - 受け入れ基準（テスト可能な形）
+- 完了条件: 後続実装担当が「追加ヒアリングなしで実装着手可能」な粒度で記述されている。
+
+3. 機能要件を実装可能なI/O仕様へ落とし込み
+- 作業: 各要件を「条件・挙動・出力」に分解して表形式で明記する。  
+  例: 必須欠落時のエラーコード/メッセージ、重複時の警告、成功時のレスポンス項目、タイムアウト時UI文言と再試行導線。
+- 完了条件: 4つの主要要件（必須、重複、成功、タイムアウト）すべてに入力条件と期待結果がある。
+
+4. Issueメタ情報との整合性を反映
+- 作業: `ISSUE-0001.yaml` の `acceptance_criteria` / `verify` を仕様書の内容と対応づけ、レビュー観点を具体化する。
+- 完了条件: YAMLと仕様書の間で矛盾がなく、レビュー時チェック項目が明示される。
+
+5. 最終レビュー（曖昧語の除去）
+- 作業: 「適宜」「必要に応じて」「可能なら」など実装解釈が分かれる語を削除/置換する。
+- 完了条件: 曖昧表現ゼロ、または未決事項を `未決事項` セクションで明示し期限付きで管理。
+
+## 3. リスクと対策
+
+- リスク: 要件の重複・矛盾が残り、後続Issueで解釈差が発生する。  
+- 対策: 仕様書を単一の正として定義し、`ISSUE-0001.yaml` は要約＋参照先リンクに寄せる。
+
+- リスク: タイムアウト要件（10秒）の扱いがAPI/画面で不一致になる。  
+- 対策: 要件に「判定主体（フロント or API gateway）」「表示文言」「再実行操作」を明記する。
+
+- リスク: 成功/失敗レスポンス項目が不明確でAPI実装が止まる。  
+- 対策: 受付ID、処理時刻、エラーコード、警告コードを固定フィールド名で記述する。
+
+- リスク: 非機能要件が不足し、DoD判定不能になる。  
+- 対策: 応答時間閾値・再試行導線・レビュー観点を受け入れ基準に含める。
+
+## 4. 検証計画（実行コマンドと期待結果）
+
+1. 仕様書ファイル存在確認
+```bash
+test -f .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: 終了コード `0`。
+
+2. 必須章の存在確認
+```bash
+rg -n "^## (対象ユーザー|現状課題|目標状態|業務フロー|機能要件|非機能要件|受け入れ基準|未決事項)" .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: 各章が1件以上ヒットする。
+
+3. 主要要件キーワードの網羅確認
+```bash
+rg -n "受注番号|顧客コード|重複|受付ID|処理時刻|10秒|タイムアウト|再実行" .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: 4要件に対応する記述がすべてヒットする。
+
+4. ISSUE-0001との整合確認
+```bash
+rg -n "acceptance_criteria|verify|depends_on|risk" .muselucid/plan/issues/ISSUE-0001.yaml
+```
+期待結果: 仕様書レビューに対応する検証観点が記載されている。
+
+5. 曖昧語チェック
+```bash
+rg -n "適宜|必要に応じて|可能なら|できれば|など" .muselucid/plan/requirements/ISSUE-0001.md
+```
+期待結果: ヒット `0` 件（または未決事項として明示管理）。
+tokens used
+12,742
+
