@@ -1,0 +1,18 @@
+id: ISSUE-0005
+title: "実装ステップ: 登録成功時は受付IDと処理時刻を返却する"
+summary: 詳細仕様と構成設計に基づき「登録成功時は受付IDと処理時刻を返却する」を実装する。
+scope:
+  - 登録成功時は受付IDと処理時刻を返却する
+  - 登録成功時は受付IDと処理時刻を返却する
+non_goals: []
+acceptance_criteria:
+  - 登録成功時は受付IDと処理時刻を返却する が利用可能であること
+  - 当日処理完了率95%以上
+verify:
+  - 一覧画面でステータス別件数を確認できること
+risk: medium
+labels:
+  - agent-task
+  - agent-ready
+depends_on:
+  - ISSUE-0004
